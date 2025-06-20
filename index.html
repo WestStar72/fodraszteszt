@@ -6,30 +6,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Időpontfoglalás</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f8f8f8; }
-    h1 { color: #333; }
-    .slot { padding: 10px; border: 1px solid #ccc; margin: 5px 0; background: #fff; display: flex; justify-content: space-between; align-items: center; }
-    .slot.foglalt { background: #ffd1d1; }
-    .slot input { margin-right: 10px; }
-    .hidden { display: none; }
-    form { margin-top: 20px; }
-    form input, select { margin: 5px 0; padding: 5px; width: 100%; }
-    form button { padding: 10px; margin-top: 10px; background: #28a745; color: #fff; border: none; cursor: pointer; }
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
+    label { display: block; margin: 1rem 0 0.3rem; }
+    select, input, button {
+      padding: 0.5rem; font-size: 1rem; width: 100%;
+      max-width: 400px; margin-bottom: 1rem;
+    }
+    .booked { color: red; }
+    .free { color: green; }
   </style>
 </head>
 <body>
-  <h1>Időpontfoglalás (8:00 – 16:00)</h1>
-  <div id="slots"></div>
+  <h1>Fodrász időpontfoglalás</h1>
 
-  <form id="bookingForm" class="hidden">
-    <h3>Foglalás adatai:</h3>
-    <input type="text" id="name" placeholder="Név" required />
-    <input type="text" id="phone" placeholder="Telefonszám" required />
-    <input type="text" id="style" placeholder="Frizura típusa" required />
-    <input type="hidden" id="selectedTime" />
-    <button type="submit">Foglalás elküldése</button>
+  <form id="booking-form">
+    <label for="name">Név:</label>
+    <input type="text" id="name" required />
+
+    <label for="phone">Telefonszám:</label>
+    <input type="tel" id="phone" required />
+
+    <label for="style">Frizura típusa:</label>
+    <input type="text" id="style" required />
+
+    <label for="slot">Időpont:</label>
+    <select id="slot" required></select>
+
+    <button type="submit">Foglalás</button>
   </form>
 
-  <script src="app.js"></script>
+  <p id="status"></p>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygUCIDMDdOOUpyZzo46ERFBa3vm23S95D1Ad_RZLneGdz5-O8C7zQeqqG30wcuBSwM/exec";
+
+    const slotSelect = document.getElementById("slot");
+    const statusP = document.getElementById("status");
+
+    function generateSlots() {
+      const slots = [];
+      for (let h = 8; h < 16; h++) {
+        slots.push(`${h}:00`);
+        slots.push(`${h}:30`);
+      }
+      return slots;
+    }
+
+    async function loadBookedSlots() {
+      const res = await fetch(SCRIPT_URL);
+      const data = await res.json();
+      const booked = data.booked || [];
+      const allSlots = generateSlots();
+
+      slotSelect.innerHTML = "";
+      allSlots.forEach(slot => {
+        const option = document.createElement("option");
+        option.value = slot;
+        option.textContent = slot + (booked.includes(slot) ? " (Foglalt)" : "");
+        option.disabled = booked.includes(slot);
+        slotSelect.appendChild(option);
+      });
+    }
+
+    document.getElementById("booking-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const phone = document.getElementById("phone").value;
+      const style = document.getElementById("style").value;
+      const slot = document.getElementById("slot").value;
+
+      const response = await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({ name, phone, style, slot }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        statusP.textContent = "Sikeres foglalás!";
+        statusP.style.color = "green";
+        loadBookedSlots();
+      } else {
+        statusP.textContent = "Ez az időpont már foglalt!";
+        statusP.style.color = "red";
+      }
+    });
+
+    loadBookedSlots();
+  </script>
 </body>
 </html>
