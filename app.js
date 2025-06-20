@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbygUCIDMDdOOUpyZzo46ERFBa3vm23S95D1Ad_RZLneGdz5-O8C7zQeqqG30wcuBSwM/exec";
+
 const slotsContainer = document.getElementById("slots");
 const form = document.getElementById("bookingForm");
 const nameInput = document.getElementById("name");
